@@ -140,14 +140,30 @@ theorem Prod_Continuous_at (x : X) (z : Z) (f : X → Y) (g : Z → T)
      use  min δf δg
      constructor
      exact lt_min δf1 δg1
-     intro p
+     intro pProd_Continuous_at
      rcases p with ⟨x1, z1 ⟩
      intro hfg
-     show max (dist (f x) (f x1)) (dist (g z) (g z1))< ε
+     show max (dist (f x) (f x1)) (distheorem Prod_Continuous (f : X → Y) (g: Z → T)
+(hf : Continuous' f) (hg : Continuous' g) :
+Continuous' (FProd f g) := by
+  show ∀ p : X × Z, Continuous_at p (FProd f g)
+  intro p
+  rcases p with ⟨ x, z ⟩
+  apply Prod_Continuous_at x z f g
+  exact hf x
+  exact hg zt (g z) (g z1))< ε
      rw [max_lt_iff]
      constructor
      apply hf1
      rw [Prod.dist_eq] at hfg
+     simp at hfg
+     rcases hfg with ⟨hfg1,hfg2,hfg3⟩
+     exact hfg1.1
+     apply hg1
+     rw [Prod.dist_eq] at hfg
+     simp at hfg
+     rcases hfg with ⟨hfg1,hfg2,hfg3⟩
+     exact hfg3
 
 
 
@@ -155,34 +171,22 @@ theorem Prod_Continuous_at (x : X) (z : Z) (f : X → Y) (g : Z → T)
 
 
 -- Write the global `Prod_Continuous` version as well.
+theorem Prod_Continuous (f : X → Y) (g: Z → T)
+(hf : Continuous' f) (hg : Continuous' g) :
+Continuous' (FProd f g) := by
+  show ∀ p : X × Z, Continuous_at p (FProd f g)
+  intro p
+  rcases p with ⟨ x, z ⟩
+  apply Prod_Continuous_at x z f g
+  exact hf x
+  exact hg z
+
+
 
 -- Do the same for the diagonal map.
 def Diag (A : Type) : A → A × A :=
   fun a ↦ (a, a)
-theorem Comp_Continuous_at'
-    (x : X) (f : X → Y) (g : Y → Z)
-    (hf : Continuous_at x f)
-    (hg : Continuous_at (f x) g) :
-    Comp_Continuous_at x f g := by
-    show ∀ ε, ε > 0 →
-    ∃ δ, δ > 0 ∧
-    ∀ z : X,
-      dist x z < δ →
-      dist ((h f g) x) ((h f g) z) < ε
-    intro ε
-    intro hε
-    have hgε := hg ε hε
-    rcases hgε with ⟨δg, δg1,hg1⟩
-    have hfδg := hf δg δg1
-    rcases hfδg with ⟨ δf, δf1, hf1⟩
-    use δf
-    constructor
-    exact δf1
-    intro z
-    intro hz
-    have hfz := hf1 z hz
-    have hgz := hg1 (f z) hfz
-    exact hgz
+
 -- Write the pointwise and global continuity results for `Diag`.
 
 /-!
@@ -193,9 +197,32 @@ using `δ = ε / 3` makes it slightly easier (although `ε / 2` should work).
 -/
 def Continuous' (f : X → Y) : Prop :=
 ∀ x : X, Continuous_at x f
+def add : ℝ × ℝ  → ℝ := fun (a,b) ↦  a+b
 theorem R_add_continuous_at (v : ℝ × ℝ) :
     Continuous_at v (fun (a, b) ↦ a + b) := by
-  sorry
+    show Continuous_at v add
+    show ∀ ε, ε >0 → ∃ δ, δ >0 ∧
+    ∀ u : ℝ × ℝ , (dist v u) <δ → dist (add v) (add u) < ε
+    intro ε
+    intro hε
+    use ε/3
+    constructor
+    positivity
+    rcases v with ⟨a,b⟩
+    intro u
+    rcases u with ⟨c,d ⟩
+    intro habcd
+    show dist (a+b) (c+d) < ε
+    rw [Prod.dist_eq] at habcd
+    simp at habcd
+    rcases habcd with ⟨h1, h2 ⟩
+    calc dist (a+b) (c+d) ≤ dist a c + dist b d
+
+
+
+
+
+
 
 -- Write the global `R_add_continuous` version as well.
 
