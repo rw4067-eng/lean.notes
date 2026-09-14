@@ -140,18 +140,10 @@ theorem Prod_Continuous_at (x : X) (z : Z) (f : X → Y) (g : Z → T)
      use  min δf δg
      constructor
      exact lt_min δf1 δg1
-     intro pProd_Continuous_at
+     intro p
      rcases p with ⟨x1, z1 ⟩
      intro hfg
-     show max (dist (f x) (f x1)) (distheorem Prod_Continuous (f : X → Y) (g: Z → T)
-(hf : Continuous' f) (hg : Continuous' g) :
-Continuous' (FProd f g) := by
-  show ∀ p : X × Z, Continuous_at p (FProd f g)
-  intro p
-  rcases p with ⟨ x, z ⟩
-  apply Prod_Continuous_at x z f g
-  exact hf x
-  exact hg zt (g z) (g z1))< ε
+     show max (dist (f x) (f x1)) (dist (g z) (g z1))< ε
      rw [max_lt_iff]
      constructor
      apply hf1
@@ -182,12 +174,36 @@ Continuous' (FProd f g) := by
   exact hg z
 
 
-
+variable {A : Type} [MetricSpace A]
 -- Do the same for the diagonal map.
 def Diag (A : Type) : A → A × A :=
   fun a ↦ (a, a)
 
+
 -- Write the pointwise and global continuity results for `Diag`.
+theorem Continuous_Diag_at (a: A) :
+Continuous_at a (fun a ↦ (a, a)) := by
+  show ∀ ε, ε>0 → ∃ δ, δ>0 ∧ ∀ b: A , dist a b <δ
+  → dist ((Diag A) a)  ((Diag A) b) < ε
+  intro ε
+  intro hε
+  use ε
+  constructor
+  exact hε
+  intro b
+  intro hab
+  show dist (a,a) (b,b) < ε
+  rw [Prod.dist_eq]
+  simp
+  exact hab
+
+
+
+theorem Continuous_Diag : Continuous' (Diag A) := by
+  show ∀ a : A , Continuous_at a (Diag A)
+  intro a
+  exact Continuous_Diag_at a
+
 
 /-!
 ## 6. Addition is continuous
@@ -195,8 +211,7 @@ def Diag (A : Type) : A → A × A :=
 This is a `calc` block. If you have never seen this proof before, one hint:
 using `δ = ε / 3` makes it slightly easier (although `ε / 2` should work).
 -/
-def Continuous' (f : X → Y) : Prop :=
-∀ x : X, Continuous_at x f
+
 def add : ℝ × ℝ  → ℝ := fun (a,b) ↦  a+b
 theorem R_add_continuous_at (v : ℝ × ℝ) :
     Continuous_at v (fun (a, b) ↦ a + b) := by
@@ -216,15 +231,35 @@ theorem R_add_continuous_at (v : ℝ × ℝ) :
     rw [Prod.dist_eq] at habcd
     simp at habcd
     rcases habcd with ⟨h1, h2 ⟩
-    calc dist (a+b) (c+d) ≤ dist a c + dist b d
-
-
+    have hadd : dist (a + b) (c + d) ≤ dist a c + dist b d := by
+     calc
+      dist (a + b) (c + d)
+      ≤ dist (a + b) (c + b) + dist (c + b) (c + d) := by
+             exact dist_triangle (a+b) (c+b) (c+d)
+      _= dist a c + dist b d := by
+            simp [dist_add_right, dist_add_left]
+    suffices hsum: dist a c + dist b d < ε  by
+      exact lt_of_le_of_lt hadd hsum
+    calc
+      dist a c + dist b d
+      <  ε/3 + dist b d := by
+        exact (add_lt_add_iff_right (dist b d)).mpr h1
+      _ < ε /3 + ε/3 := by
+          exact add_lt_add_right h2 (ε / 3)
+    linarith
 
 
 
 
 
 -- Write the global `R_add_continuous` version as well.
+
+theorem R_add_continuous : Continuous' add := by
+  show ∀ v : ℝ × ℝ, Continuous_at v add
+  intro v
+  exact R_add_continuous_at v
+
+
 
 /-!
 ## 7. Addition of continuous functions
@@ -241,6 +276,29 @@ theorem add_cont (f g : ℝ → ℝ)
     (hf : Continuous' f)
     (hg : Continuous' g) :
     Continuous' (f + g) := by
-  sorry
+      have hfg : f + g
+      = add ∘ (FProd f g) ∘ (Diag ℝ) := by
+        funext x
+        simp [add, FProd, Diag]
+      rw [hfg]
+      have hdiag: Continuous' (Diag ℝ) := by
+        exact Continuous_Diag
+      have hprod: Continuous' (FProd f g):= by
+        apply Prod_Continuous f g
+        exact hf
+        exact hg
+      have hinner:
+      Continuous' ((FProd f g) ∘ (Diag ℝ)) := by
+        apply Comp_Continuous  (Diag ℝ) (FProd f g)
+        exact hdiag
+        exact hprod
+      apply Comp_Continuous  ((FProd f g) ∘ (Diag ℝ)) (add)
+      exact hinner
+      exact R_add_continuous
+
+
+
+
+
 
 end Continuous
